@@ -1,0 +1,65 @@
+ PREMIER SERVICE
+
+
+python manage.py collectstatic   
+cd progD_projet
+docker build -t front-end-app .
+docker run -p 8000:8000 front-end-app:latest
+docker tag front-end-app:latest younesrebai01/front-end-app:latest
+docker push younesrebai01/front-end-app:latest
+
+----------------------------------------------------------------
+
+minikube start --network-plugin=cni --container-runtime=docker
+
+---> deploy and expose service with commands ----------------------------------------------------------------
+kubectl create deployment front-end-service --image=younesrebai01/front-end-app:latest
+kubectl expose deployment front-end-service --type=NodePort --port=8000
+minikube service front-end-service --url 
+
+
+---> basic commands ----------------------------------------------------------------
+
+kubectl delete service front-end-service
+kubectl delete deployment  front-end-service
+kubectl delete ingress front-ingress
+
+
+
+kubectl get services
+kubectl get deployments
+kubectl get pods
+kubectl get nodes #status
+kubectl describe nodes
+------> Gateway-------------------------------------------------------------------
+kubectl apply -f ingress.yml
+kubectl get ingress
+minikube addons enable ingress-dns
+minikube tunnel
+
+http://frontendapp.info/
+
+
+
+***********************************************************************************************************************
+SECOND SERVICE http://127.0.0.1:8000/weather/?city=Paris
+http://weather.example.com/
+
+cd weather_service
+
+docker build -t weather-service .
+docker tag weather-service younesrebai01/weather-service:latest
+docker push younesrebai01/weather-service:latest
+
+kubectl create deployment weather-service --image=younesrebai01/weather-service:latest
+kubectl expose deployment weather-service --type=NodePort --port=8000
+
+
+kubectl apply -f ingress.yaml
+kubectl get ingress
+minikube addons enable ingress-dns
+minikube tunnel
+
+kubectl delete service weather-service
+kubectl delete deployment weather-service
+kubectl delete ingress weather-ingress

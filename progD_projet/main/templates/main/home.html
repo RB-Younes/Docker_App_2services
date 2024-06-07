@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+  <header>
+    <title >Pocket-app - France</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    {% load static %}
+    <link type="text/css" rel="stylesheet" href="{% static '/styles/todo-style.css' %}">
+  </header>
+
+  <body>
+
+    <div class="container">
+        <div class="todo-app">
+
+            <h2>To-Do List <img src="{% static '/icons/to-do-list.png' %}"></h2>
+            <div class="row">
+                <input type="text" id="input-box" placeholder="Add your task">
+                <button class="button" onclick="addTask()">Add</button>
+            </div>
+            <ul id="list-container">
+                {% for task_tuple in tasks_with_ids %}
+                <li class="{% if task_tuple.2 == 'Done' %}checked{% endif %}" data-task-index="{{ index }}" data-task-id="{{ task_tuple.0 }}">{{ task_tuple.1 }}<span onclick="removeTask(this)">×</span></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="search">
+                <!-- Add an id attribute to the input element for easy access -->
+                <input type="text" id="city-input" placeholder="Enter city name" spellcheck="false">
+                <button class="search-btn" onclick="searchWeather()"><img src="{% static '/icons/search.png' %}"></button>
+            </div>
+            <div class="error">
+                <p>Invalid city name</p>
+            </div>
+            <div class="weather">
+                <img src="{% static '/icons/rain.png' %}" class="weather-icon">
+                <h1 class="temp" id="temperature"></h1>
+                <h2 class="city" id="city-name"></h2>
+                <div class="details">
+                    <div class="col">
+                        <img src="{% static '/icons/humidity.png' %}">
+                        <div>
+                            <!-- Add an id attribute to the element for easy access -->
+                            <p class="humidity" id="humidity"></p>
+                            <p>Humidity</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <img src="{% static '/icons/wind.png' %}">
+                        <div>
+                            <!-- Add an id attribute to the element for easy access -->
+                            <p class="wind" id="wind-speed"></p>
+                            <p>Wind Speed</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+<script>
+   function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function getWeatherIcon(weatherCategory) {
+    // Check if the weatherCategory contains words related to rain, snow, mist, or clouds
+    const isRainRelated = weatherCategory.includes('rain') || weatherCategory.includes('shower') || weatherCategory.includes('storm');
+    const isSnowRelated = weatherCategory.includes('snow');
+    const isMistRelated = weatherCategory.includes('mist');
+    const isCloudsRelated = weatherCategory.includes('clouds') || weatherCategory.includes('cloudy');
+    
+    // Map weather categories to corresponding icons
+    const weatherIcons = {
+        'clear sky': 'clear.png',
+        'few clouds': isCloudsRelated ? 'clouds.png' : 'clouds-and-sun.png',
+        'scattered clouds': isCloudsRelated ? 'clouds.png' : 'clouds-and-sun.png',
+        'broken clouds': isCloudsRelated ? 'clouds.png' : 'clouds-and-sun.png',
+        'overcast clouds': isCloudsRelated ? 'clouds.png' : 'clouds-and-sun.png',
+        'shower rain': isRainRelated ? 'rain.png' : 'rain-and-clouds.png',
+        'rain': isRainRelated ? 'rain.png' : 'rain-and-clouds.png',
+        'thunderstorm': isRainRelated ? 'rain.png' : 'rain-and-clouds.png',
+        'snow': isSnowRelated ? 'snow.png' : 'default.png',
+        'mist': isMistRelated ? 'mist.png' : 'default.png'
+    };
+
+    // Check if the weatherCategory matches any of the keys in weatherIcons
+    for (const [category, icon] of Object.entries(weatherIcons)) {
+        if (weatherCategory.includes(category)) {
+            return icon;
+        }
+    }
+
+    // Default icon if no match is found
+    return 'clear.png';
+}
+
+function searchWeather() {
+    // Retrieve the value entered by the user
+    let city = document.getElementById('city-input').value;
+
+    // Fetch weather data for the entered city
+    fetch(`http://weather.example.com/weather/?city=${city}`)
+        .then(response => response.json())
+        .then(data => {
+            document.querySelector('.weather').style.display ="block";
+            // Update the UI with the received weather data
+            document.getElementById('city-name').innerText = capitalizeFirstLetter(data.city);
+            // Round temperature to the nearest integer
+            document.getElementById('temperature').innerText = `${Math.round(data.temperature)}°C`;
+            // Round humidity to the nearest integer
+            document.getElementById('humidity').innerText = `${Math.round(data.humidity)}%`;
+            // Round wind speed to the nearest integer
+            document.getElementById('wind-speed').innerText = `${Math.round(data.wind_speed)} km/h`;
+            // Update weather icon
+            const weatherIcon = getWeatherIcon(data.weather);
+            document.querySelector('.weather-icon').src = `{% static '/icons/' %}${weatherIcon}`;
+            // Clear the input field after search
+            document.getElementById('city-input').value = '';
+            document.querySelector('.error').style.display ="none";
+        })
+        .catch(error => {
+            document.querySelector('.error').style.display ="block";
+            document.querySelector('.weather').style.display ="none";
+            console.error('Error fetching weather data:', error);
+        });
+}
+
+</script>
+
+
+  <script>
+      
+
+
+    const inputBox = document.getElementById('input-box');
+    const listContainer = document.getElementById('list-container');
+
+    function addTask() {
+    if (inputBox.value == '') {
+        alert("You must write something !");
+    } else {
+        let taskText = inputBox.value;
+        // AJAX request to send task data to Django
+        fetch('/add_task/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}' // Use the global CSRF token variable
+    },
+    body: JSON.stringify({ 'task_text': taskText }) // Ensure 'task_text' is enclosed in quotes
+})
+
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let li = document.createElement("li");
+                li.innerHTML = taskText;
+                listContainer.appendChild(li);
+                let span = document.createElement('span');
+                span.innerHTML = "\u00d7";
+                li.appendChild(span);
+                inputBox.value = '';
+                location.reload();
+            } else {
+                alert("Failed to add task: " + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+}
+listContainer.addEventListener("click", function(e) {
+    if (e.target.tagName === "LI") {
+        e.target.classList.toggle("checked");
+        const taskId = e.target.dataset.taskId;
+        const isChecked = e.target.classList.contains("checked");
+        updateTaskStatus(taskId, isChecked);
+    } else if (e.target.tagName === "SPAN") {
+      const taskId = e.target.parentElement.dataset.taskId;
+        removeTask(taskId);
+        e.target.parentElement.remove();
+    }
+}, false);
+
+
+function updateTaskStatus(taskId, isChecked) {
+    fetch('/update_task_status/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ taskId: taskId, isChecked: isChecked })
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("Task status updated successfully");
+        } else {
+            console.error("Failed to update task status");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function removeTask(taskId) {
+    fetch('/delete_task/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ taskId: taskId })
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log("Task removed successfully");
+        } else {
+            console.error("Failed to remove task");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+  </script>
+</html>
